@@ -2,8 +2,10 @@ import gradio as gr
 from sentence_transformers import SentenceTransformer, util
 import PyPDF2
 
+# ---- Load model ----
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
+# ---- Roles ----
 job_roles = [
     "Data Scientist",
     "Machine Learning Engineer",
@@ -11,15 +13,10 @@ job_roles = [
     "Frontend Developer"
 ]
 
+# Precompute embeddings
 role_embeddings = model.encode(job_roles, convert_to_tensor=True)
 
-role_skills = {
-    "Data Scientist": ["Python", "Machine Learning", "Statistics"],
-    "Machine Learning Engineer": ["Python", "Deep Learning", "TensorFlow"],
-    "Backend Developer": ["Python", "APIs", "Databases"],
-    "Frontend Developer": ["HTML", "CSS", "JavaScript"]
-}
-
+# ---- PDF Extract ----
 def extract_pdf(file):
     reader = PyPDF2.PdfReader(file)
     text = ""
@@ -29,6 +26,7 @@ def extract_pdf(file):
             text += t
     return text
 
+# ---- Main Function ----
 def analyze(resume_file, resume_text):
 
     if resume_file is not None:
@@ -51,6 +49,7 @@ def analyze(resume_file, resume_text):
 
     return "\n".join(result)
 
+# ---- UI ----
 demo = gr.Interface(
     fn=analyze,
     inputs=[
@@ -58,8 +57,8 @@ demo = gr.Interface(
         gr.Textbox(lines=10, label="Or paste resume text")
     ],
     outputs="text",
-    title="AI Career Assistant",
-    description="Analyze your resume and get top career matches"
+    title="💼 AI Career Assistant",
+    description="Upload your resume or paste text to get career matches"
 )
 
 demo.launch()
