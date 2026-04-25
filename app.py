@@ -39,15 +39,61 @@ def analyze(resume_file, resume_text):
     emb = model.encode(text, convert_to_tensor=True)
     sims = util.cos_sim(emb, role_embeddings)[0]
 
-    top_idx = sims.cpu().numpy().argsort()[::-1][:3]
+    scores = sims.cpu().numpy()
+    top_idx = scores.argsort()[::-1][:3]
 
-    result = []
+    max_score = scores[top_idx[0]]
+
+    result = "🎯 TOP CAREER MATCHES\n\n"
+
     for i in top_idx:
-        score = float(sims[i])
-        percent = int(score * 100)
-        result.append(f"{job_roles[i]} → {percent}%")
+        role = job_roles[i]
+        relative = scores[i] / max_score
+        percent = int(relative * 100)
 
-    return "\n".join(result)
+        if percent > 75:
+            level = "Strong match"
+        elif percent > 50:
+            level = "Moderate match"
+        else:
+            level = "Weak match"
+
+        result += f"{role} → {percent}% ({level})\n"
+
+    # ---- Skills ----
+    all_skills = set(sum(role_skills.values(), []))
+    detected = [s for s in all_skills if s.lower() in text.lower()]
+
+    top_role = job_roles[top_idx[0]]
+    required = role_skills[top_role]
+    missing = [s for s in required if s not in detected]
+
+    result += "\n🧠 DETECTED SKILLS:\n"
+    if detected:
+        for s in detected:
+            result += f"- {s}\n"
+    else:
+        result += "None detected\n"
+
+    result += "\n❌ MISSING SKILLS (for top role):\n"
+    if missing:
+        for s in missing:
+            result += f"- {s}\n"
+    else:
+        result += "None\n"
+
+    result += "\n📌 WHY THIS ROLE?\n"
+    matched = [s for s in required if s in detected]
+
+    result += "Matching skills:\n"
+    for s in matched:
+        result += f"- {s}\n"
+
+    result += "\nRequired skills:\n"
+    for s in required:
+        result += f"- {s}\n"
+
+    return result
 
 # ---- UI ----
 demo = gr.Interface(
